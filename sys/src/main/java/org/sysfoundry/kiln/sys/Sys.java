@@ -78,7 +78,13 @@ public class Sys {
             mappedConfigObjects.put(configClass,subsysConfig);
         }
 
+        //add the sys config as well
+        mappedConfigObjects.put(Config.class,finalSystemConfigObj);
+
         Set<Class> factoryClassSet = new LinkedHashSet<>();
+
+        //add the base subsys instance factory
+        factoryClassSet.add(BaseSubsysInstanceFactory.class);
 
         for (Subsys subsys : subsysSet) {
             Class factoryClass = subsys.getFactoryClass();

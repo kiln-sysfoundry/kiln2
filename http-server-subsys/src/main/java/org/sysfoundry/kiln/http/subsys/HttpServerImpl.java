@@ -45,6 +45,7 @@ class HttpServerImpl implements HttpServer {
     private HttpHandler getRoutingHandler() {
         RoutingHandler routingHandler = Handlers.routing();
         for (HttpHandlerRoute route : allRoutes) {
+            log.debug("Adding http route {} ",route);
             if(route.getPredicate() == null) {
                 routingHandler.add(route.getMethod(), route.getPathTemplate(), route.getHandler());
             }else{

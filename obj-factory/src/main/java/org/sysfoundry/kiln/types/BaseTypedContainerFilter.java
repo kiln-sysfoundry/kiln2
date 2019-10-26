@@ -1,6 +1,8 @@
 package org.sysfoundry.kiln.types;
 
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sysfoundry.kiln.factory.FactoryException;
 import org.sysfoundry.kiln.factory.InstanceFactory;
 import org.sysfoundry.kiln.factory.UnsupportedInstanceTypeException;
@@ -16,6 +18,8 @@ public abstract class BaseTypedContainerFilter<T> {
     protected Class mainType;
     protected Class annotationType;
     protected Optional<Set<T>> filteredResults;
+
+    private static Logger log = LoggerFactory.getLogger(BaseTypedContainerFilter.class);
 
     public BaseTypedContainerFilter(@NonNull InstanceFactory factory,@NonNull Class annotationType
             ,@NonNull Class<? extends T> mainType){
@@ -51,7 +55,10 @@ public abstract class BaseTypedContainerFilter<T> {
                             throw new FilteringFailedException(e);
                         }
 
+                        log.trace("typed Container Set {}",typedContainerSet);
+
                             Set<TypedContainer> matchingTypedContainerSet = typedContainerSet.stream().filter(typedContainer -> {
+                                log.trace("TypedContainer {}",typedContainer);
                                 return ((
                                             annotationType.isAssignableFrom(typedContainer.getAnnotationType())
                                         ) && (

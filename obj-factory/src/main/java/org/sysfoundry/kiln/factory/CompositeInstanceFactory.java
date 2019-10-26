@@ -141,8 +141,10 @@ public class CompositeInstanceFactory implements InstanceFactory{
             Set<InstanceFactory> factories = classToFactorySetMap.get(type);
 
             for (InstanceFactory factory : factories) {
-                T t = factory.get(type);
-                allInstances.add(t);
+                //T t = factory.get(type);
+                Set<? extends T> allInstancesFromFactory = factory.getAll(type);
+
+                allInstances.addAll(allInstancesFromFactory);
             }
 
             return allInstances;

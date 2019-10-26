@@ -13,6 +13,8 @@ public class HttpSubsys extends BaseSubsys<HttpSubsysConfig> {
     public static final String NAME = "http-subsys";
     private static final Logger log = Log.get(NAME);
 
+    public static final String HEALTH_CHECK_ENDPOINT = "/health/status";
+
     public HttpSubsys() {
         super(HttpSubsysFactory.class, HttpSubsysConfig.class,NAME);
     }

@@ -1,9 +1,12 @@
 package org.sysfoundry.kiln.http.subsys;
 
+import org.slf4j.Logger;
 import org.sysfoundry.kiln.factory.ConstructionFailedException;
 import org.sysfoundry.kiln.factory.FactoryException;
 import org.sysfoundry.kiln.factory.InstanceFactory;
 import org.sysfoundry.kiln.factory.MapBaseInstanceFactory;
+import org.sysfoundry.kiln.health.Log;
+import org.sysfoundry.kiln.health.Status;
 import org.sysfoundry.kiln.http.HttpHandlerRoute;
 import org.sysfoundry.kiln.http.HttpHandlerRouteFilter;
 import org.sysfoundry.kiln.http.HttpServer;
@@ -16,8 +19,15 @@ import java.util.Set;
 
 import static org.sysfoundry.kiln.factory.Util.imMap;
 import static org.sysfoundry.kiln.factory.Util.singleton;
+import static org.sysfoundry.kiln.http.subsys.HttpSubsys.HEALTH_CHECK_ENDPOINT;
+import static org.sysfoundry.kiln.http.subsys.HttpSubsys.NAME;
 
 public class HttpSubsysFactory extends MapBaseInstanceFactory {
+
+    private static final Logger log = Log.get(NAME);
+
+
+
     public HttpSubsysFactory(InstanceFactory parent) {
 
         super(parent, imMap(
@@ -42,12 +52,24 @@ public class HttpSubsysFactory extends MapBaseInstanceFactory {
                 }),
                 singleton(parent, TypedContainer.class,instanceFactory -> {
                     Set<HttpHandlerRoute> defaultRoutes = new LinkedHashSet<>();
-                    defaultRoutes.add(new HttpHandlerRoute("get","/test/*",null,httpServerExchange -> {
+
+                    try {
+                        HealthCheckController healthCheckController = new HealthCheckController(parent.get(Status.class));
+
+                        //add default health check endpoints
+                        defaultRoutes.add(new HttpHandlerRoute("get",HEALTH_CHECK_ENDPOINT,null,
+                                healthCheckController.getHealthCheckHandler()));
+
+                    } catch (FactoryException e) {
+                        log.warn("Failed to lookup System Status information. Unable to register {} endpoint",HEALTH_CHECK_ENDPOINT);
+                    }
+
+                    /*defaultRoutes.add(new HttpHandlerRoute("get","/test/*",null,httpServerExchange -> {
                         httpServerExchange.getResponseSender().send("Test Message");
                     }));
                     defaultRoutes.add(new HttpHandlerRoute("post","/test/posttest/*",null,httpServerExchange -> {
                         httpServerExchange.getResponseSender().send("Test Post message");
-                    }));
+                    }));*/
                     return new TypedContainer(defaultRoutes,HttpHandlerRoute.class,Set.class,HttpHandlerRoute.class);
                 })
 
