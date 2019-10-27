@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.sysfoundry.kiln.eventing.Event;
 import org.sysfoundry.kiln.eventing.EventHandler;
 import org.sysfoundry.kiln.eventing.Eventbus;
+import org.sysfoundry.kiln.formats.data.JsonUtil;
 import org.sysfoundry.kiln.health.Log;
 
 import java.time.Duration;
@@ -29,6 +30,7 @@ class KafkaEventbus implements Eventbus {
 
     private KafkaProducer<String,String> kafkaProducer;
     private KafkaConsumer<String,String> kafkaConsumer;
+    private Long pollMillis;
     private KafkaConsumerRunner kafkaConsumerRunner;
     private Thread consumerThread;
 
@@ -37,9 +39,10 @@ class KafkaEventbus implements Eventbus {
 
     private static final Logger log = Log.get(NAME);
 
-    KafkaEventbus(Properties kafkaProducerConfig,Properties kafkaConsumerConfig){
+    KafkaEventbus(Properties kafkaProducerConfig,Properties kafkaConsumerConfig,Long pollMillis){
         this.kafkaProducerConfig = kafkaProducerConfig;
         this.kafkaConsumerConfig = kafkaConsumerConfig;
+        this.pollMillis = pollMillis;
     }
 
     @Override
@@ -70,9 +73,11 @@ class KafkaEventbus implements Eventbus {
 
 
         kafkaConsumerRunner = new KafkaConsumerRunner(kafkaConsumer,
-                new ImmutableMultimap.Builder<String,EventHandler>().putAll(eventHandlerMultiMap).build());
+                new ImmutableMultimap.Builder<String,EventHandler>().putAll(eventHandlerMultiMap).build(),
+                pollMillis
+                );
 
-        consumerThread = new Thread(kafkaConsumerRunner);
+        consumerThread = new Thread(kafkaConsumerRunner,"kafka-consumer-thread");
 
         consumerThread.start();
         isStarted.compareAndSet(false,true);
@@ -100,26 +105,36 @@ class KafkaEventbus implements Eventbus {
         private final KafkaConsumer consumer;
         private final ImmutableSet<String> topics;
         private final ImmutableMultimap<String,EventHandler> topicEventHandlers;
+        private final Long pollMillis;
 
         public KafkaConsumerRunner(KafkaConsumer consumer,
-                                   ImmutableMultimap<String,EventHandler> topicEventHandlers) {
+                                   ImmutableMultimap<String,EventHandler> topicEventHandlers,Long pollMillis) {
             this.consumer = consumer;
             this.topics = topicEventHandlers.keySet();
             this.topicEventHandlers = topicEventHandlers;
+            this.pollMillis = pollMillis;
         }
 
         public void run() {
             try {
                 consumer.subscribe(topics);
                 while (!closed.get()) {
-                    ConsumerRecords records = consumer.poll(Duration.ofMillis(10000));
-                    log.info("Received Consumer Record {}",records);
+                    ConsumerRecords records = consumer.poll(Duration.ofMillis(pollMillis));
+                    log.trace("Received Consumer Record {}",records);
                     Iterator messageIterator = records.iterator();
 
                     while(messageIterator.hasNext()){
                         ConsumerRecord nextMessage = (ConsumerRecord)messageIterator.next();
                         Object value = nextMessage.value();
-                        log.info("Received Message {}",value);
+                        String topic = nextMessage.topic();
+                        //log.info("Received Message {}",value);
+                        try {
+                            Event event = convertToEvent(topic, value);
+
+                            deliverEvent(topic, event);
+                        }catch(Exception e){
+                            log.info(String.format("Received error %s when converting to event, so the message has been discarded or dropped!",e.getMessage()));
+                        }
 
                     }
                     // Handle new records
@@ -131,6 +146,25 @@ class KafkaEventbus implements Eventbus {
             } finally {
                 consumer.close();
             }
+        }
+
+        private void deliverEvent(String topic, Event event) {
+            ImmutableCollection<EventHandler> eventHandlers = topicEventHandlers.get(topic);
+
+            for (EventHandler eventHandler : eventHandlers) {
+                try {
+                    eventHandler.onEvent(topic, event);
+                }catch(Exception e){
+                    log.info("Received error {} on handling event {} for eventhandler {}",e.getMessage(),event,eventHandler);
+                }
+            }
+
+        }
+
+        private Event convertToEvent(String topic, Object value) throws JsonProcessingException {
+            String messageStr = value.toString();
+            Event event = JsonUtil.fromJSON(messageStr, Event.class);
+            return event;
         }
 
         // Shutdown hook which can be called from a separate thread

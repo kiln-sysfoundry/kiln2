@@ -12,4 +12,6 @@ public class KafkaEventbusSubsysConfig {
 
     private Map<String,Object> consumerConfig;
 
+
+    private Long consumerPollMillis;
 }

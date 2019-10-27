@@ -4,11 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import lombok.NonNull;
 
 public class JsonUtil {
 
     public static ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
+
+    {
+        JSON_OBJECT_MAPPER.registerModule(new ParameterNamesModule());
+        JSON_OBJECT_MAPPER.registerModule(new Jdk8Module());
+        JSON_OBJECT_MAPPER.registerModule(new JavaTimeModule());
+
+    }
 
     public static <T> T fromJSON(@NonNull String content,@NonNull Class<T> type) throws JsonProcessingException {
         ObjectReader objectReader = JSON_OBJECT_MAPPER.readerFor(type);

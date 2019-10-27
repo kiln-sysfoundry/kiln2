@@ -41,7 +41,8 @@ public class KafkaEventbusInstanceFactory extends MapBaseInstanceFactory {
                         log.debug("Kafka Consumer Configuration Properties {}",kafkaConsumerConfigProperties);
 
 
-                        Eventbus kafkaEventbus = new KafkaEventbus(kafkaProducerConfigProperties,kafkaConsumerConfigProperties);
+                        Eventbus kafkaEventbus = new KafkaEventbus(kafkaProducerConfigProperties,
+                                kafkaConsumerConfigProperties,kafkaEventbusSubsysConfig.getConsumerPollMillis());
 
 
                         return kafkaEventbus;

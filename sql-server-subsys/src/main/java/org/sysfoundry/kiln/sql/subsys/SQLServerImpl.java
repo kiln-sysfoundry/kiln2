@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.slf4j.Logger;
 import org.sysfoundry.kiln.health.Log;
 import org.sysfoundry.kiln.sql.NoSuchDatasourceDefinedException;
@@ -52,7 +53,10 @@ class SQLServerImpl implements SQLServer {
             ImmutableMap.Builder<String, Jdbi> jdbiMapBuilder = new ImmutableMap.Builder<>();
 
             dataSourceMap.forEach((name,ds)->{
-                jdbiMapBuilder.put(name,Jdbi.create(ds));
+                Jdbi jdbi = Jdbi.create(ds);
+                //register the sql object plugin
+                jdbi.installPlugin(new SqlObjectPlugin());
+                jdbiMapBuilder.put(name,jdbi);
             });
 
             jdbiMap = jdbiMapBuilder.build();
