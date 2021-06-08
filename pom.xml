@@ -92,7 +92,7 @@
             <dependency>
                 <groupId>org.jboss.xnio</groupId>
                 <artifactId>xnio-nio</artifactId>
-                <version>3.7.3.Final</version>
+                <version>3.7.9.Final</version>
                 <scope>runtime</scope>
             </dependency>
 
